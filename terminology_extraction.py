@@ -61,7 +61,7 @@ class Terminology:
                 n += self.files[term][doc] * math.log(1/self.files[term][doc])
             self.domain_consens[term] = n
 
-    def extract_terminology(self, alpha=0.5, theta=0.7):
+    def extract_terminology(self, alpha=0.1, theta=1):
         self._domain_consens()
         print("Domain consens")
         self._domain_relevance()
@@ -69,7 +69,7 @@ class Terminology:
         term = set()
         for candidate in self.candidates:
             value = alpha * self.domain_relevance[candidate] + (1-alpha)*self.domain_consens[candidate]
-            if value >= 5:
+            if value >= theta:
                 term.add(candidate)
         return term
 
@@ -82,5 +82,12 @@ if __name__ == "__main__":
             can[words] = int(line[1])
     t = Terminology("acl_texts", reuters.words(), can)
     terms = t.extract_terminology()
-    print(terms)
-    print(len(terms))
+    gold = set()
+    with open("gold_terminology.txt") as goldf:
+        for line in goldf:
+            line = tuple(line.rstrip().split())
+            gold.add(line)
+    both = terms.intersection(gold)
+    print(both)
+    print(len(both))
+    print(len(gold))
