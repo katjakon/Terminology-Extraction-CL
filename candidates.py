@@ -42,7 +42,7 @@ class Candidates:
 
     def _count(self):
         if self.from_dir:
-            txt = [file for file in os.listdir(self.corpus_dir) if file.endswith(".txt")]
+            txt = [file for file in os.listdir(self.corpus) if file.endswith(".txt")]
             for file in txt:
                 with open(os.path.join(self.corpus, file), encoding="utf-8") as file:
                     for line in file:
@@ -50,7 +50,7 @@ class Candidates:
                         self.count_bigrams(bigrams(line))
                         self.count_unigrams(line)
         else:
-            self.count_bigrams(self.corpus)
+            self.count_bigrams(bigrams(self.corpus))
             self.count_unigrams(self.corpus)
 
     def count_bigrams(self, bigram_list):
@@ -62,18 +62,20 @@ class Candidates:
             self.unigrams[unigram] += 1
 
     def get_candidates(self, prop=-15):
-        candidates = set()
+        candidates = dict()
         sum_bigrams = self.sum_bigrams
         for word_i, word_j in self.bigrams:
             if word_i not in self.stops and word_j not in self.stops:
                 if word_i not in self.PUNC and word_j not in self.PUNC:
                     log_bi = math.log(self.bigrams[(word_i, word_j)]/sum_bigrams)
                     if log_bi >= prop:
-                        candidates.add((word_i, word_j))
+                        candidates[(word_i, word_j)] = self.bigrams[(word_i, word_j)]
         return candidates
+
 
 if __name__ == "__main__":
     c = Candidates("acl_texts", stops=stopwords.words("english"))
     d = c.get_candidates()
-    print(d)
-    print(len(d))
+    with open("cand.txt", "w") as file:
+        for i, j in d:
+            file.write("{} {}\t{}\n".format(i, j, d[(i, j)]))
