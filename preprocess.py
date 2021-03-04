@@ -7,10 +7,9 @@ import string
 import math
 
 from nltk import bigrams
-from nltk.corpus import stopwords
-from nltk.probability import FreqDist
-from nltk.tokenize import WordPunctTokenizer
+from nltk.corpus import stopwords, reuters
 from nltk.corpus.reader.plaintext import PlaintextCorpusReader
+from nltk.probability import FreqDist
 
 
 class Preprocess:
@@ -37,18 +36,29 @@ class Preprocess:
     def get_candidates(self, prop=-15, stops=None):
         if stops is None:
             stops = []
-        candidates = dict()
+        candidates = set()
         sum_bigrams = self.sum_bigrams
         for word_i, word_j in self.bigrams:
             if word_i not in stops and word_j not in stops:
                 if word_i not in self.PUNC and word_j not in self.PUNC:
                     log_bi = math.log(self.bigrams[(word_i, word_j)]/sum_bigrams)
                     if log_bi >= prop:
-                        candidates[(word_i, word_j)] = self.bigrams[(word_i, word_j)]
+                        candidates.add((word_i, word_j))
         return candidates
 
-    def bigram_freq(self, bigram_list):
+    def bigram_freq(self, bigram_list, fileid=None):
+        if fileid is not None:
+            freq_f = self.freq_in_file(fileid)
+            return {bigram: freq_f[bigram] for bigram in bigram_list if bigram in freq_f}
         return {bigram: self.bigrams.get(bigram, 0) for bigram in bigram_list}
+
+    def freq_in_file(self, fileid):
+        assert fileid in self.corpus.fileids(), "File needs to be in corpus"
+        bis = dict()
+        for bigram in bigrams(self.corpus.words(fileid)):
+            bis.setdefault(bigram, 0)
+            bis[bigram] += 1
+        return bis
 
     def bigrams_to_file(self, bigrams, file_dir="preprocess", name="candidates", ext=".txt"):
         if not os.path.isdir(file_dir):
@@ -75,5 +85,5 @@ class Preprocess:
 
 
 if __name__ == "__main__":
-    d = Preprocess("acl_texts/")
-    print(dict(d.bigrams_from_file("text_paper_1.txt")))
+    d = Preprocess(reuters, from_dir=False)
+    can = d.get_candidates(stops=stopwords.words("english"))

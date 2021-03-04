@@ -7,87 +7,85 @@ import math
 
 from nltk import bigrams
 from nltk.corpus import reuters
+from nltk.corpus import stopwords
 from nltk.tokenize import WordPunctTokenizer
 
-from candidates import Candidates
+from preprocess import Preprocess
+
 
 class Terminology:
 
-    def __init__(self, domain, reference, candidates):
-        self.domain = domain
-        self.reference = reference
+    def __init__(self, domain, reference, candidates=None):
+        self.domain = Preprocess(domain)
+        self.reference = Preprocess(reference, from_dir=False)
+
+        if candidates is None:
+            candidates = self.domain.get_candidates(stops=stopwords.words("english"))
         self.candidates = candidates
-        self.domain_relevance = dict()
-        self.domain_consens = dict()
-        self.files = {term: dict() for term in self.candidates}
-        self.r = Candidates(self.reference, from_dir=False)
+        self.domain_relevance = self._domain_relevance()
+        self.domain_consensus = self._domain_consensus()
+
+    @staticmethod
+    def _prob_in_corpus(freq, freq_sum):
+        if freq_sum == 0:
+            return 0
+        return freq / freq_sum
 
     def _domain_relevance(self):
-        s = self._count_reference()
+        print("Relevance")
+        domain_relevance = dict()
+        freq_dom = self.domain.bigram_freq(self.candidates)
+        freq_ref = self.reference.bigram_freq(self.candidates)
+        sum_dom = sum(freq_dom[bigram] for bigram in freq_dom)
+        sum_ref = sum(freq_ref[bigram] for bigram in freq_ref)
         for candidate in self.candidates:
-            if s == 0:
-                p = 0
+            prob_ref = self._prob_in_corpus(freq_ref[candidate], sum_ref)
+            prob_dom = self._prob_in_corpus(freq_dom[candidate], sum_dom)
+            if prob_dom == 0 and prob_ref == 0:
+                term_relevance = 0
             else:
-                p = self.r.bigrams.get(candidate, 0) / s
-            term_relevance = self.candidates[candidate] / (self.candidates[candidate]
-                                                          + p)
-            self.domain_relevance[candidate] = term_relevance
+                term_relevance = prob_dom / (prob_dom + prob_ref)
+            domain_relevance[candidate] = term_relevance
+        return domain_relevance
 
-    def _count_reference(self):
-        s = 0
-        for c in self.candidates:
-            s += self.r.bigrams.get(c, 0)
-        return s
-
-    def _domain_consens(self):
-        txt = [file for file in os.listdir(self.domain) if file.endswith(".txt")]
-        for index, file in enumerate(txt):
-            with open(os.path.join(self.domain, file)) as f:
-                for line in f:
-                    line = WordPunctTokenizer().tokenize(line.rstrip().lower())
-                    line = bigrams(line)
-                    match = [bigram for bigram in line if bigram in self.candidates]
-                    for bi in match:
-                        self.files[bi].setdefault(index, 0)
-                        self.files[bi][index] += 1
-        for term in self.files:
-            s = 0
-            for doc in self.files[term]:
-                s += self.files[term][doc]
-            for doc in self.files[term]:
-                self.files[term][doc] = self.files[term][doc]/s
-            n = 0
-            for doc in self.files[term]:
-                n += self.files[term][doc] * math.log(1/self.files[term][doc])
-            self.domain_consens[term] = n
+    def _domain_consensus(self):
+        print("Consensus")
+        domain_consensus = dict()
+        files = {term: dict() for term in self.candidates}
+        c = 0
+        for file in self.domain.corpus.fileids():
+            if c % 1000 == 0:
+                print(c)
+            cand_freq = self.domain.bigram_freq(self.candidates, file)
+            for term in cand_freq:
+                files[term][file] = cand_freq[term]
+            c += 1
+        for term in files:
+            sum_files = sum(files[term][file] for file in files[term])
+            for file in files[term]:
+                files[term][file] = files[term][file] / sum_files
+            cons = sum(files[term][doc] * math.log(1/files[term][doc])
+                       for doc in files[term])
+            domain_consensus[term] = cons
+        return domain_consensus
 
     def extract_terminology(self, alpha=0.1, theta=1):
-        self._domain_consens()
-        print("Domain consens")
-        self._domain_relevance()
-        print("Domain relevance")
         term = set()
         for candidate in self.candidates:
-            value = alpha * self.domain_relevance[candidate] + (1-alpha)*self.domain_consens[candidate]
+            value = (alpha * self.domain_relevance[candidate]
+                     + (1-alpha)*self.domain_consensus[candidate])
             if value >= theta:
                 term.add(candidate)
         return term
 
 if __name__ == "__main__":
     can = dict()
-    with open("cand.txt") as file:
+    with open("preprocess/candidates1.txt") as file:
         for line in file:
             line = line.rstrip().split("\t")
             words = tuple(line[0].split())
             can[words] = int(line[1])
-    t = Terminology("acl_texts", reuters.words(), can)
-    terms = t.extract_terminology()
-    gold = set()
-    with open("gold_terminology.txt") as goldf:
-        for line in goldf:
-            line = tuple(line.rstrip().split())
-            gold.add(line)
-    both = terms.intersection(gold)
-    print(both)
-    print(len(both))
-    print(len(gold))
+    t = Terminology("acl_texts", reuters, can)
+    terms = t.extract_terminology(theta=2.5)
+    print(terms)
+    print(len(terms))
