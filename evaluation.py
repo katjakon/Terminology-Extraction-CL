@@ -4,7 +4,6 @@ Evaluation
 """
 import os
 
-from terminology_extraction import Terminology
 
 class Evaluation:
 
