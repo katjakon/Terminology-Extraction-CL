@@ -4,11 +4,11 @@ Preprocess Terminology extraction
 """
 import os
 import math
+import time
 
 from nltk import bigrams
 from nltk.corpus import reuters
 from nltk.corpus import stopwords
-from nltk.tokenize import WordPunctTokenizer
 
 from preprocess import Preprocess
 
@@ -17,7 +17,7 @@ class Terminology:
 
     def __init__(self, domain, reference, candidates=None):
         self.domain = Preprocess(domain)
-        self.reference = Preprocess(reference, from_dir=False)
+        self.reference = Preprocess(reference)
 
         if candidates is None:
             candidates = self.domain.get_candidates(stops=stopwords.words("english"))
@@ -26,7 +26,7 @@ class Terminology:
         self.domain_consensus = self._domain_consensus()
 
     @staticmethod
-    def _prob_in_corpus(freq, freq_sum):
+    def _probability(freq, freq_sum):
         if freq_sum == 0:
             return 0
         return freq / freq_sum
@@ -34,13 +34,13 @@ class Terminology:
     def _domain_relevance(self):
         print("Relevance")
         domain_relevance = dict()
-        freq_dom = self.domain.bigram_freq(self.candidates)
-        freq_ref = self.reference.bigram_freq(self.candidates)
+        freq_dom = self.domain.get_freq(self.candidates)
+        freq_ref = self.reference.get_freq(self.candidates)
         sum_dom = sum(freq_dom[bigram] for bigram in freq_dom)
         sum_ref = sum(freq_ref[bigram] for bigram in freq_ref)
         for candidate in self.candidates:
-            prob_ref = self._prob_in_corpus(freq_ref[candidate], sum_ref)
-            prob_dom = self._prob_in_corpus(freq_dom[candidate], sum_dom)
+            prob_ref = self._probability(freq_ref[candidate], sum_ref)
+            prob_dom = self._probability(freq_dom[candidate], sum_dom)
             if prob_dom == 0 and prob_ref == 0:
                 term_relevance = 0
             else:
@@ -52,33 +52,32 @@ class Terminology:
         print("Consensus")
         domain_consensus = dict()
         files = {term: dict() for term in self.candidates}
-        c = 0
         for file in self.domain.corpus.fileids():
-            if c % 1000 == 0:
-                print(c)
-            cand_freq = self.domain.bigram_freq(self.candidates, file)
+            cand_freq = self.domain.get_freq(self.candidates, file)
             for term in cand_freq:
                 files[term][file] = cand_freq[term]
-            c += 1
         for term in files:
             sum_files = sum(files[term][file] for file in files[term])
             for file in files[term]:
-                files[term][file] = files[term][file] / sum_files
+                files[term][file] = self._probability(files[term][file],
+                                                      sum_files)
             cons = sum(files[term][doc] * math.log(1/files[term][doc])
+                       if files[term][doc] != 0 else 0
                        for doc in files[term])
             domain_consensus[term] = cons
         return domain_consensus
 
     def extract_terminology(self, alpha=0.1, theta=1):
-        term = set()
+        terms = set()
         for candidate in self.candidates:
             value = (alpha * self.domain_relevance[candidate]
                      + (1-alpha)*self.domain_consensus[candidate])
             if value >= theta:
-                term.add(candidate)
-        return term
+                terms.add(candidate)
+        return terms
 
 if __name__ == "__main__":
+    s = time.time()
     can = dict()
     with open("preprocess/candidates1.txt") as file:
         for line in file:
@@ -87,5 +86,5 @@ if __name__ == "__main__":
             can[words] = int(line[1])
     t = Terminology("acl_texts", reuters, can)
     terms = t.extract_terminology(theta=2.5)
-    print(terms)
-    print(len(terms))
+    e = time.time()
+    print(e-s)
