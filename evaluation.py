@@ -1,40 +1,80 @@
 # -*- coding: utf-8 -*-
+# Katja Konermann
+# 802658
 """
-Evaluation
+Evaluation of a set of extracted terms.
 """
-import os
 
 
 class Evaluation:
 
-    def __init__(self, term_file, gold_file):
-        self.terms = self._read_from_file(term_file)
-        self.golds = self._read_from_file(gold_file)
+    """
+    A class that evaluates a set of extracted terms.
 
-    def _read_from_file(self, file):
-        words = set()
-        with open(os.path.join(file), encoding="utf-8") as file:
-            for line in file:
-                line = line.rstrip().split()
-                if len(line) == 2:
-                    words.add(tuple(line))
-        return words
+    Attributes:
+        terms (set): A set of extraced bigrams (two-tuples of strings)
+        golds (set): A set of gold standard bigrams (two-tuples of strings)
+        correct_terms (set): Intersection of terms and golds.
+
+    Methods:
+        precision():
+            Number of correct terms divided by number of extracted terms.
+        recall():
+            Number of correct terms divided by number of gold terms.
+        f1():
+            Harmonic medium of precision and recall.
+    """
+
+    def __init__(self, terms, golds):
+        """
+        Construct an instance of Evaluation class.
+
+        Args:
+            terms:
+                Iterable of bigrams (two-tuples of strings) that should
+                be evaluated.
+            golds:
+                Iterable of bigrams (two-tuples of strings) that are
+                considered the standard.
+
+        Returns:
+            None.
+        """
+        self.terms = set(terms)
+        self.golds = set(golds)
+        self.correct_terms = self.terms.intersection(self.golds)
 
     def precision(self):
-        correct = len(self.terms.intersection(self.golds))
-        return correct / len(self.terms)
+        """
+        Compute precision by dividing number of correct terms by
+        number of extracted terms.
+
+        Returns:
+            Precision value (float)
+
+        """
+        if len(self.terms) == 0:
+            return 0
+        return len(self.correct_terms) / len(self.terms)
 
     def recall(self):
-        correct = len(self.terms.intersection(self.golds))
-        return correct / len(self.golds)
+        """
+        Compute recall by dividing number of correct terms by
+        number of gold standard terms.
+
+        Returns:
+            Recall value (float)
+
+        """
+        if len(self.golds) == 0:
+            return 0
+        return len(self.correct_terms) / len(self.golds)
 
     def f1(self):
+        """Returns harmonic medium of recall and precision value.
+        """
         prec = self.precision()
         rec = self.recall()
+        if not prec and not rec:
+            return 0
         return (2 * prec * rec) / (prec + rec)
-
-if __name__ == "__main__":
-    eval_terms = Evaluation("extracted_terms.txt", "gold_terminology.txt")
-    print(eval_terms.precision())
-    print(eval_terms.recall())
-    print(eval_terms.f1())

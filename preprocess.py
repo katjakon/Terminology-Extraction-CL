@@ -5,8 +5,6 @@
 Choose candidates for terminolgy extraction
 and do some preprocessing.
 """
-import math
-
 from nltk import bigrams
 from nltk.corpus.reader.plaintext import PlaintextCorpusReader
 from nltk.probability import FreqDist
@@ -45,6 +43,7 @@ class Preprocess:
             None.
         """
         if isinstance(corpus, str):
+            # Convert directory to Plaintext Corpus.
             corpus = PlaintextCorpusReader(corpus, ".*")
         self.corpus = corpus
         self._bigrams = FreqDist()
@@ -85,7 +84,7 @@ class Preprocess:
             return True
         return False
 
-    def candidates(self, min_prob=-15.25, stops=None):
+    def candidates(self, min_count=4, stops=None):
         """
         Generate a list of possible candidates for terminology extraction.
 
@@ -94,13 +93,13 @@ class Preprocess:
         contain tokens in stopword list.
 
         Args:
-            min_prob (float):
-                Minimum probablity a bigram has to have to be considered a
-                candidate. Log probablities are used.
+            min_count (int):
+                Minimum frequency a bigram has to have to be considered a
+                candidate. Absolute frequency are used.
             stops (list):
                 List of strings. If a bigram contains a word of that list, it
-                is not considered a candidate. If default is used, an empty list
-                is used. Default is None.
+                is not considered a candidate. If default is used,
+                an empty list is used. Default is None.
 
         Returns:
             set:
@@ -109,13 +108,13 @@ class Preprocess:
         if stops is None:
             stops = []
         candidates = set()
-        sum_bigrams = self.sum_bigrams
         for word_i, word_j in self.bigrams():
+            # Filter out bigrams with stopwords.
             if word_i not in stops and word_j not in stops:
+                # Make sure bigrams only alpha-numeric.
                 if self.is_lexical(word_i, word_j):
-                    prob_bi = math.log(self.bigrams()[word_i, word_j]
-                                       / sum_bigrams)
-                    if prob_bi >= min_prob:
+                    # Filter out infrequent bigrams.
+                    if self.bigrams()[word_i, word_j] >= min_count:
                         candidates.add((word_i, word_j))
         return candidates
 
@@ -153,9 +152,15 @@ class Preprocess:
             FreqDist:
                 two-tuples of strings are keys, frequency in corpus/file are
                 values.
+
+        Raises:
+            AssertionError:
+                If given file is not in corpus.
         """
         if fileid is not None:
+            # Make sure file is in corpus.
             assert fileid in self.corpus.fileids(), "File not in corpus."
+            # Case insensitive.
             file_words = [word.lower() for word in self.corpus.words(fileid)]
             bigrams_file = bigrams(file_words)
             return FreqDist(bigrams_file)
