@@ -11,6 +11,19 @@ from preprocess import Preprocess
 
 class Terminology:
 
+    DEMO = {"domain": "demo/domain/",
+            "reference": "demo/reference",
+            "candidates": {('computational', 'linguistics'),
+                           ('low', 'recall'),
+                           ('recall', 'rates'),
+                           ('text', 'mining'),
+                           ('language', 'generation'),
+                           ('speech', 'recognition'),
+                           ('our', 'language'),
+                           ('machine', 'translation'),
+                           ('used', 'machine')}
+            }
+
     """
     A class for extracting terminolgy from a domain corpus.
 
@@ -173,6 +186,23 @@ class Terminology:
                 terms[candidate] = value
         return terms
 
+    @classmethod
+    def demo(cls):
+        print("\tDemo for class Terminology\n"
+              "For each method, you can see its arguments and output. "
+              "For more information use the help function.\n\n"
+              "Arguments used for instanciating the class:\n"
+              "\tDomain corpus - {}\n"
+              "\tReference corpus - {}\n"
+              "\tCandidates - {}".format(cls.DEMO["domain"],
+                                         cls.DEMO["reference"],
+                                         cls.DEMO["candidates"]))
+        term = cls(**cls.DEMO)
+        print("{:=^90}".format("terminology(alpha=0.5, theta=1)"))
+        print(term.terminology(alpha=0.5, theta=1))
+        print("{:=^90}".format("terminology(alpha=0.6, theta=0.6)"))
+        print(term.terminology(alpha=0.6, theta=0.6))
+
 
 if __name__ == "__main__":
-    pass
+    Terminology.demo()

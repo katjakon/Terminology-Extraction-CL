@@ -8,6 +8,12 @@ Evaluation of a set of extracted terms.
 
 class Evaluation:
 
+    DEMO = {"terms": {('machine', 'translation'),
+                      ('computational', 'linguistics'),
+                      ('use', 'machine')},
+            "golds": {('machine', 'translation'),
+                      ('speech', 'recognition')}}
+
     """
     A class that evaluates a set of extracted terms.
 
@@ -78,3 +84,23 @@ class Evaluation:
         if not prec and not rec:
             return 0
         return (2 * prec * rec) / (prec + rec)
+
+    @classmethod
+    def demo(cls):
+        print("\tDemo for class Evaluation\n"
+              "For each method, you can see its arguments and output. "
+              "For more information use the help function.\n\n"
+              "Arguments used for instanciating the class:\n"
+              "\tExtracted terms - {}\n"
+              "\tGold terms - {}".format(cls.DEMO["terms"], cls.DEMO["golds"]))
+        eva = cls(**cls.DEMO)
+        print("{:=^90}".format("recall()"))
+        print(eva.recall())
+        print("{:=^90}".format("precision()"))
+        print(eva.precision())
+        print("{:=^90}".format("f1()"))
+        print(eva.f1())
+
+
+if __name__ == "__main__":
+    Evaluation.demo()
