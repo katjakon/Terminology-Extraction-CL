@@ -1,0 +1,3 @@
+The field of computational linguistics.
+We used machine learning for our language generation model.
+Text Mining brought very good results,
