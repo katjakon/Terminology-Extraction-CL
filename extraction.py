@@ -125,7 +125,7 @@ class Terminology:
                 # Divide frequency of a term in a file by sum of freq.
                 files[term][file] = self._probability(files[term][file],
                                                       sum_files)
-            # Compute entropy of distribution of term.
+            # Compute entropy of distribution for a term.
             cons = sum(files[term][doc] * math.log(1/files[term][doc])
                        if files[term][doc] != 0 else 0
                        for doc in files[term])

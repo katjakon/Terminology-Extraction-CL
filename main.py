@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Katja Konermann
+# 802658
 """
 Main file - Implements command line arguments with argparse.
 """
@@ -12,15 +14,18 @@ from evaluation import Evaluation
 from preprocess import Preprocess
 
 
-def terms_from_file(file):
+def terms_from_file(file, ngram=2):
     terms = set()
     with open(file, encoding="utf-8") as file:
         for line in file:
             line = line.rstrip().split("\t")
             if line:
-                bigram = line[0].split()
-                if len(bigram) == 2:
-                    terms.add(tuple(bigram))
+                term = line[0].split()
+                if len(term) == ngram:
+                    if ngram == 1:
+                        terms.add(*term)
+                    else:
+                        terms.add(tuple(term))
     return terms
 
 
@@ -65,7 +70,9 @@ def extract(domain, reference, candidates, output, alpha, theta):
     # Read candidates from file.
     cand = terms_from_file(candidates)
     # Extract terminology.
-    terms = Terminology(domain, reference, cand).terminology(alpha, theta)
+    print("Processing domain and reference corpus...")
+    term_obj = Terminology(domain, reference, cand)
+    terms = term_obj.terminology(alpha, theta)
     # Write output file.
     with open(output, "w", encoding="utf-8") as out:
         out.write("alpha\t{}\n".format(alpha))
@@ -115,11 +122,13 @@ def candidates(corpus, stops, min_count, file):
     file (str):
         name of file where candidates should be stored.
     """
-    stops = terms_from_file(stops)
+    stops = terms_from_file(stops, ngram=1)
     file = os.path.join(file)
     if os.path.exists(file):
         raise OSError("Output file already exists")
+    print("Processing corpus...")
     process = Preprocess(corpus)
+    print("Generating candidates...")
     cand = process.candidates(min_count=min_count, stops=stops)
     with open(file, "w", encoding="utf-8") as out:
         for word_i, word_j in cand:
@@ -132,6 +141,7 @@ def main():
     reference = reuters
     cand_file = "preprocess/candidates1.txt"
     gold_file = "gold_terminology.txt"
+    stopwords = "nltk_stops_en.txt"
     parser = argparse.ArgumentParser(description="Extract Terminology for "
                                      "Computational Linguistics")
     sub = parser.add_subparsers(dest="command")
@@ -161,11 +171,11 @@ def main():
     # Add necessary arguments for candidates command
     cand_pars = sub.add_parser("candidates",
                                help="Generate possible candidates "
-                               "for domain specific terminology")
+                               "for a domain")
     cand_pars.add_argument("--corpus", default=domain,
                            help="Directory with txt files "
                            "to extract candidates from")
-    cand_pars.add_argument("--stops", default="nltk_stops_en.txt",
+    cand_pars.add_argument("--stops", default=stopwords,
                            help="File with stopwords")
     cand_pars.add_argument("--min_count", default=4, type=int,
                            help="Minimum count for terms "
