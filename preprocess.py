@@ -5,6 +5,7 @@
 Choose candidates for terminolgy extraction
 and do some preprocessing.
 """
+import nltk
 from nltk import bigrams
 from nltk.corpus.reader.plaintext import PlaintextCorpusReader
 from nltk.probability import FreqDist
@@ -12,12 +13,14 @@ from nltk.probability import FreqDist
 
 class Preprocess:
 
+    DEMO = {"corpus": "demo/"}
+
     """
     A class that does some processing of a corpus. A corpus can be
     an nltk corpus or directory of text files.
 
     Attributes:
-        corpus
+        corpus: A nltk corpus object.
 
     Methods:
         is_lexical(word_i, word_j):
@@ -61,7 +64,6 @@ class Preprocess:
         Returns:
             None.
         """
-        print("Processing corpus...")
         words = [word.lower() for word in self.corpus.words()]
         bigrams_words = bigrams(words)
         for bigram in bigrams_words:
@@ -84,13 +86,37 @@ class Preprocess:
             return True
         return False
 
-    def candidates(self, min_count=4, stops=None):
+    @staticmethod
+    def has_relevant_tag(bigram, relevant):
+        """Checks if a bigram consists of at least one relevant tag.
+
+        If iterable of relevant tags is empty, always returns True.
+
+        Args:
+            bigram:
+                Iterable of two strings
+            relevant:
+                Iterbale of strings, representing valid tags
+                used by Penn Treebank.
+
+        Returns:
+            True if intersection between tagged bigram and relevant tags is
+            at least one or if relevant tags are empty. False otherwise.
+        """
+        relevant = set(relevant)
+        tags = {tag for word, tag in nltk.pos_tag(bigram)}
+        if relevant.intersection(tags) or len(relevant) == 0:
+            return True
+        return False
+
+    def candidates(self, min_count=4, stops=None, tags={"NN", "NNP", "NNS"}):
         """
         Generate a list of possible candidates for terminology extraction.
 
-        A bigram is considered a candidate if it exceeds a minimum proportion
-        of whole corpus, only contains alpha-numeric characters and doesn't
-        contain tokens in stopword list.
+        A bigram is considered a candidate if it has a minimum
+        absolute frequency in corpus, only contains alpha-numeric characters,
+        doesn't contain tokens in stopword list and consists
+        of at least one relevant tag.
 
         Args:
             min_count (int):
@@ -115,7 +141,8 @@ class Preprocess:
                 if self.is_lexical(word_i, word_j):
                     # Filter out infrequent bigrams.
                     if self.bigrams()[word_i, word_j] >= min_count:
-                        candidates.add((word_i, word_j))
+                        if self.has_relevant_tag((word_i, word_j), tags):
+                            candidates.add((word_i, word_j))
         return candidates
 
     def get_frequency(self, bigram_list, fileid=None):
@@ -166,6 +193,44 @@ class Preprocess:
             return FreqDist(bigrams_file)
         return self._bigrams
 
+    @classmethod
+    def demo(cls):
+        print("\tDemo for class Preprocess\n"
+              "For each method, you can see its arguments and output. "
+              "For more information use the help function.")
+        print("Using corpus: {}".format(cls.DEMO["corpus"]))
+        pre = cls(**cls.DEMO)
+        print("{:=^90}".format("bigrams()"))
+        print(pre.bigrams())
+        print("{:=^90}".format("bigrams('demo1.txt')"))
+        print(pre.bigrams("demo1.txt"))
+        print("{:=^90}".format("sum_bigrams"))
+        print(pre.sum_bigrams)
+        print("{:=^90}".format("get_frequency"
+                               "([('computational', 'linguistics'), "
+                               "('not', 'present')])"))
+        print(pre.get_frequency([('computational', 'linguistics'),
+                                 ('not', 'present')]))
+        print("{:=^90}".format("is_lexical('hello', 'world')"))
+        print(pre.is_lexical('hello', 'world'))
+        print("{:=^90}".format("is_lexical('hello', '?')"))
+        print(pre.is_lexical('hello', '?'))
+        print("{:=^90}".format("has_relevant_tag(('computational', "
+                               "'linguistics'), "
+                               "relevant={'NN', 'NNP', 'NNS'})"))
+        print(pre.has_relevant_tag(('computational', 'linguistics'),
+                                   relevant={'NN', 'NNP', 'NNS'}))
+        print("{:=^90}".format("has_relevant_tag(('is', 'difficult'),"
+                               "relevant={'NN', 'NNP', 'NNS'})"))
+        print(pre.has_relevant_tag(('is', 'difficult'),
+                                   relevant={'NN', 'NNP', 'NNS'}))
+        print("{:=^90}".format("candidates(min_count=1, "
+                               "stops=['is', 'the', 'for', 'of'], "
+                               "tags={'NN', 'NNP', 'NNS'})"))
+        print(pre.candidates(min_count=1,
+                             stops=['is', 'the', 'for', 'of'],
+                             tags={'NN', 'NNP', 'NNS'}))
+
 
 if __name__ == "__main__":
-    pass
+    Preprocess.demo()
