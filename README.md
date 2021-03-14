@@ -18,7 +18,7 @@ Move the domain corpus (standard: acl_texts) to this directory. The corpus shoul
 ### Generate Candidates
 You can find a predefined list of candidates in the file `preprocess/candidates1.txt`.<br>
 
-To generate your own list run:
+To generate your own list run:<br>
 `main.py candidates [--stops <stopword file>] [--min_count <integer>] <domain dir> <output file> [<tag> [<tag> ...]]`<br>
 Explanation:
 + `--stops <stopword file>`: A file with stopwords that are not allowed to occur in a candidate. Bigrams that contain a word from this file are filtered out.
