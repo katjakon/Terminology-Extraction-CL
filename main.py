@@ -3,206 +3,292 @@
 # 802658
 """
 Main file - Implements command line arguments with argparse.
+
+Extract - Class for the command to extract terminology
+Evaluate - Class for the command to evaluate extracted terms.
+Candidates - Class for the command to generate candidates.
 """
 import argparse
+import sys
 import os
-
-from nltk.corpus import reuters
 
 from extraction import Terminology
 from evaluation import Evaluation
 from preprocess import Preprocess
 
 
-def terms_from_file(file, ngram=2):
-    terms = set()
-    with open(file, encoding="utf-8") as file:
-        for line in file:
-            line = line.rstrip().split("\t")
-            if line:
-                term = line[0].split()
-                if len(term) == ngram:
-                    if ngram == 1:
-                        terms.add(*term)
-                    else:
-                        terms.add(tuple(term))
-    return terms
-
-
-def extract(domain, reference, candidates, output, alpha, theta):
+class Extract:
     """
-    Extract terminolgy from domain corpus by reading candidates from
-    a file and writing terminology to a output file.
-    First two lines in output will be values for alpha and theta.
-    After that line have the format: <word_i> <word_j>\t<value>
+    A class that extracts terminology from a corpus and
+    writes results to a file.
 
-    Args:
-        domain:
+    Attributes:
+        domain (str):
             Corpus with domain specific content.
-            Can either be the name of directory with txt files or
-            a nltk corpus object.
-        reference :
-            Corpus with neutral content.
-            Can either be the name of directory with txt files or
-            a nltk corpus object.
+            Name of directory with txt files.
         candidates (str):
             Path to a file where possible candidates are stored.
             Lines should have the format: <word_i> <word_j>
-        output:
+        output (str):
             Name of a file where output will be stored.
         alpha (float):
             Value for alpha, weights relevance and consenus
         theta (float):
             Value for theta, threshold for terminology
 
-    Raises:
-        OSError:
-            If output file already exists.
-
-    Returns:
-        None.
-
+    Methods:
+        read_from_file(file, n=2):
+            Read in terms from a file.
+        run():
+            Extract terminology from domain corpus
+            and write results to file.
     """
-    output = os.path.join(output)
-    # Check if output exitst to avoid overwriting results.
-    if os.path.exists(output):
-        raise OSError("Output file already exists.")
-    # Read candidates from file.
-    cand = terms_from_file(candidates)
-    # Extract terminology.
-    print("Processing domain and reference corpus...")
-    term_obj = Terminology(domain, reference, cand)
-    terms = term_obj.terminology(alpha, theta)
-    # Write output file.
-    with open(output, "w", encoding="utf-8") as out:
-        out.write("alpha\t{}\n".format(alpha))
-        out.write("theta\t{}\n".format(theta))
-        for word_i, word_j in terms:
-            out.write("{} {}\t{}\n".format(word_i,
-                                           word_j,
-                                           terms[(word_i, word_j)]))
-    # Success message.
-    print("Terminology written to {}".format(output))
+    from nltk.corpus import reuters
+
+    REF = reuters
+
+    def __init__(self, sysargs):
+        """Instanciate an Extract object
+
+        Args:
+            sysargs (list):
+                A list of command line arguments.
+        """
+        self.args = self._parser(sysargs)
+        self.corpus = self.args.corpus
+        self.candidates = self.read_from_file(self.args.candidates)
+        self.out = self.args.out
+        self.theta = self.args.theta
+        self.alpha = self.args.alpha
+
+    def _parser(self, sysargs):
+        """Parse command line arguments"""
+        parser = argparse.ArgumentParser("Extract terminology for a domain")
+        parser.add_argument("corpus",
+                            help="Directory of domain corpus with txt files")
+        parser.add_argument("candidates",
+                            help="File with candidates.")
+        parser.add_argument("-a", "--alpha", type=float,
+                            help="Value for weighing consensus "
+                            "and relevance",
+                            required=True)
+        parser.add_argument("-t", "--theta", type=float,
+                            help="Threshold when extracting terminology",
+                            required=True)
+        parser.add_argument("out", help="Name for output file")
+        return parser.parse_args(sysargs)
+
+    @staticmethod
+    def read_from_file(file, n=2):
+        """Read terms from file."""
+        terms = set()
+        with open(file, encoding="utf-8") as file:
+            for line in file:
+                line = line.rstrip().split("\t")
+                if line:
+                    term = line[0].split()
+                    if len(term) == n:
+                        if n == 1:
+                            terms.add(*term)
+                        else:
+                            terms.add(tuple(term))
+        return terms
+
+    def run(self):
+        """Extract candidates and write them to the output file.
+
+        First two lines will be value for alpha and theta.
+
+        Returns: None
+
+        Raises:
+            OSError:
+                If output file already exists to avoid overwriting results
+        """
+        out = os.path.join(self.out)
+        # Check if output exitst to avoid overwriting results.
+        if os.path.exists(out):
+            raise OSError("Output file already exists.")
+        # Extract terminology.
+        print("Processing domain and reference corpus...")
+        term_obj = Terminology(self.corpus,
+                               self.REF,
+                               self.candidates)
+        terms = term_obj.terminology(self.alpha, self.theta)
+        # Write output file.
+        with open(out, "w", encoding="utf-8") as out:
+            out.write("alpha\t{}\n".format(self.alpha))
+            out.write("theta\t{}\n".format(self.theta))
+            for word_i, word_j in terms:
+                out.write("{} {}\t{}\n".format(word_i,
+                                               word_j,
+                                               terms[(word_i, word_j)]))
+        # Success message.
+        print("Terminology written to {}".format(self.out))
 
 
-def evaluate(extracted, gold):
+class Evaluate:
     """
-    Prints precision, recall and f1-score for a file
-    with extraced terms.
+    A class that evaluates extracted terms.
 
-    Args:
-        extracted (str):
-            Path to a file where extracted terms are stored. First two lines
-            will be ignored, because alpha and theta are stored here.
-            After that each line should have the format
-            <word_i> <word_j>\t<value>
+    Attributes:
         gold (str):
-            Path to a file where gold standard terms are stored. Each line
-            should have the format: <word_i> <word_j>
-
-    Returns:
-        None.
+            Name of a file with gold standard bigrams.
+            Line format <word> <word>.
+        extracted (str):
+            Name of file with extracted terms and values
+            of decision function. Line format <word> <word>\t<value>
+        high (int):
+            Indicates how many of the highest scored terms will be
+            printed. If None, no terms will be printed.
+        low (int):
+            Indicates how many of the lowest scored terms will be
+            printes, If None, no terms will be printed.
     """
-    extr_terms = terms_from_file(extracted)
-    gold_terms = terms_from_file(gold)
-    eval_extrac = Evaluation(extr_terms, gold_terms)
-    # Print evaluation metrics.
-    print("Recall: {:.3f}".format(eval_extrac.recall()))
-    print("Precision: {:.3f}".format(eval_extrac.precision()))
-    print("F1-Score: {:.3f}".format(eval_extrac.f1()))
+
+    def __init__(self, sysargs):
+        """Instanciating an Evaluate object.
+
+        Args:
+            sysargs (list): Command Line arguments.
+
+        Returns:
+            None
+        """
+        self._args = self._parser(sysargs)
+        self.gold = self._args.gold
+        self.extracted = self._args.extracted
+        self.high = self._args.high
+        self.low = self._args.low
+
+    def _parser(self, sysargs):
+        """Parse command line arguments."""
+        parser = argparse.ArgumentParser(description="Evaluate "
+                                         "extracted terminology")
+        parser.add_argument("--extracted",
+                            help="Name of file with extracted terms.",
+                            required=True)
+        parser.add_argument("--gold",
+                            help="Name of file with gold standard terms.",
+                            required=True)
+        parser.add_argument("--high", type=int,
+                            help="Print n highest scored terms")
+        parser.add_argument("--low", type=int,
+                            help="Print n lowest scored terms")
+        return parser.parse_args(sysargs)
+
+    def run(self):
+        """Evaluate extracted terms and print highest/lowest scored terms."""
+        eval_extrac = Evaluation.from_file(self.gold, self.extracted)
+        # Print evaluation metrics.
+        print("Recall: {:.3f}".format(eval_extrac.recall()))
+        print("Precision: {:.3f}".format(eval_extrac.precision()))
+        print("F1-Score: {:.3f}".format(eval_extrac.f1()))
+        if self.high is not None:
+            print("{} highest scored terms:".format(self.high))
+            high_terms = eval_extrac.highest_scored(self.high)
+            for wordi, wordj in high_terms:
+                print(wordi, wordj)
+        if self.low is not None:
+            print("{} lowest scored terms:".format(self.low))
+            low_terms = eval_extrac.lowest_scored(self.low)
+            for wordi, wordj in low_terms:
+                print(wordi, wordj)
 
 
-def candidates(corpus, stops, min_count, file):
-    """Generates candidates from corpus and writes them to file.
-
-    corpus (str):
-        directory with text files.
-    min_count (int):
-        minimum frequency for a term to be considered a candidate
-    file (str):
-        name of file where candidates should be stored.
+class Candidates(Extract):
     """
-    stops = terms_from_file(stops, ngram=1)
-    file = os.path.join(file)
-    if os.path.exists(file):
-        raise OSError("Output file already exists")
-    print("Processing corpus...")
-    process = Preprocess(corpus)
-    print("Generating candidates...")
-    cand = process.candidates(min_count=min_count, stops=stops)
-    with open(file, "w", encoding="utf-8") as out:
-        for word_i, word_j in cand:
-            out.write("{} {}\n".format(word_i, word_j))
-    print("Candidates written to {}".format(file))
+    A class that creates a file with possible candidates.
+
+    Attributes:
+        corpus (str):
+            directory with text files.
+        min_count (int):
+            minimum frequency for a term to be considered a candidate
+        output (str):
+            name of file where candidates should be stored.
+        stops (str):
+            Name of a file with stopwords that should be ignored.
+            If not defined, None.
+        tags [list]:
+            List of Penn Treebank Tags that are considered relevant for
+            a candidate, can be empty.
+    """
+
+    def __init__(self, sysargs):
+        self.args = self._parser(sysargs)
+        self.corpus = self.args.corpus
+        self.stops = self.args.stops
+        self.min_count = self.args.min_count
+        self.output = self.args.output
+        self.tags = self.args.tags
+
+    def _parser(self, sysargs):
+        parser = argparse.ArgumentParser(description="Generate possible "
+                                         "candidates for a domain")
+        parser.add_argument("corpus",
+                            help="Directory with txt files "
+                            "to extract candidates from")
+        parser.add_argument("output", help="Name for the output file.")
+        parser.add_argument("--stops",
+                            help="File with stopwords")
+        parser.add_argument("--min_count", default=4, type=int,
+                            help="Minimum count for terms "
+                            "to be considered candidate")
+        parser.add_argument("tags",
+                            help="Relevant tags for candidates,"
+                            "use Penn Treebank Tags",
+                            nargs="*",
+                            default=[])
+        return parser.parse_args(sysargs)
+
+    def run(self):
+        """Generate candidates and write them to a file
+
+        Returns: None
+
+        Raises:
+            OSError:
+                If output file already exists.
+        """
+        if self.stops is None:
+            stops = []
+        else:
+            stops = self.read_from_file(self.stops, n=1)
+        out = os.path.join(self.output)
+        if os.path.exists(out):
+            raise OSError("Output file already exists")
+        print("Processing corpus...")
+        process = Preprocess(self.corpus)
+        print("Generating candidates...")
+        cand = process.candidates(min_count=self.min_count,
+                                  stops=stops,
+                                  tags=self.tags)
+        with open(out, "w", encoding="utf-8") as out:
+            for word_i, word_j in cand:
+                out.write("{} {}\n".format(word_i, word_j))
+        print("Candidates written to {}".format(self.output))
 
 
 def main():
-    domain = "acl_texts"
-    reference = reuters
-    cand_file = "preprocess/candidates1.txt"
-    gold_file = "gold_terminology.txt"
-    stopwords = "nltk_stops_en.txt"
-    parser = argparse.ArgumentParser(description="Extract Terminology for "
-                                     "Computational Linguistics")
-    sub = parser.add_subparsers(dest="command")
-    # Add necessary arguments for extraction command.
-    extract_pars = sub.add_parser("extract",
-                                  help="Extract terminology for a domain")
-    extract_pars.add_argument("--dom", default=domain,
-                              help="Directory of domain corpus with txt files")
-    extract_pars.add_argument("--ref", default=reference,
-                              help="Directory of reference corpus "
-                              "with txt files")
-    extract_pars.add_argument("--cand", default=cand_file,
-                              help="File with candidates.")
-    extract_pars.add_argument("alpha", type=float,
-                              help="Value for weighing consensus "
-                              "and relevance")
-    extract_pars.add_argument("theta", type=float,
-                              help="Threshold when extracting terminology")
-    extract_pars.add_argument("out", help="Name for output file")
-    # Add necessary arguments for evaluate command.
-    eval_pars = sub.add_parser("evaluate",
-                               help="Evaluate extracted terminology")
-    eval_pars.add_argument("extracted",
-                           help="Name of file with extracted terms.")
-    eval_pars.add_argument("--gold", default=gold_file,
-                           help="Name of file with gold standard terms.")
-    # Add necessary arguments for candidates command
-    cand_pars = sub.add_parser("candidates",
-                               help="Generate possible candidates "
-                               "for a domain")
-    cand_pars.add_argument("--corpus", default=domain,
-                           help="Directory with txt files "
-                           "to extract candidates from")
-    cand_pars.add_argument("--stops", default=stopwords,
-                           help="File with stopwords")
-    cand_pars.add_argument("--min_count", default=4, type=int,
-                           help="Minimum count for terms "
-                           "to be considered candidate")
-    cand_pars.add_argument("output", help="Name for the output file.")
-    args = parser.parse_args()
-    try:
-        if args.command == "extract":
-            extract(args.dom,
-                    args.ref,
-                    args.cand,
-                    args.out,
-                    args.alpha,
-                    args.theta)
-        elif args.command == "evaluate":
-            evaluate(args.extracted, args.gold)
-        elif args.command == "candidates":
-            candidates(args.corpus,
-                       args.stops,
-                       args.min_count,
-                       args.output)
-        else:
-            parser.print_help()
-    except (OSError, ValueError) as err:
-        print("Failure: {}".format(err))
-        parser.print_help()
+    """"""
+    arg = sys.argv
+    if len(arg) < 2:
+        raise ValueError("Enter a valid command.")
+    if arg[1] == "extract":
+        Extract(arg[2:]).run()
+    elif arg[1] == "evaluate":
+        Evaluate(arg[2:]).run()
+    elif arg[1] == "candidates":
+        Candidates(arg[2:]).run()
+    else:
+        raise ValueError("Invalid command '{}'".format(arg[1]))
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (OSError, ValueError) as err:
+        print("Failure: {}".format(err))
+        print("Type 'evaluate -h', 'extract -h' "
+              "or 'candidates -h' for more information")
