@@ -4,13 +4,13 @@
 """
 Evaluation of a set of extracted terms.
 """
-
+import os
 
 class Evaluation:
 
-    DEMO = {"terms": {('machine', 'translation'),
-                      ('computational', 'linguistics'),
-                      ('use', 'machine')},
+    DEMO = {"terms": {('machine', 'translation'): 0.8,
+                      ('computational', 'linguistics'): 0.6,
+                      ('use', 'machine'): 0.5},
             "golds": {('machine', 'translation'),
                       ('speech', 'recognition')}}
 
@@ -36,9 +36,9 @@ class Evaluation:
         Construct an instance of Evaluation class.
 
         Args:
-            terms:
-                Iterable of bigrams (two-tuples of strings) that should
-                be evaluated.
+            terms (dict):
+                Keys are bigrams (two-tuples of strings), value should be
+                value of decision function.
             golds:
                 Iterable of bigrams (two-tuples of strings) that are
                 considered the standard.
@@ -46,9 +46,11 @@ class Evaluation:
         Returns:
             None.
         """
-        self.terms = set(terms)
+        self.terms = terms
         self.golds = set(golds)
-        self.correct_terms = self.terms.intersection(self.golds)
+        if not self.golds:
+            raise ValueError("Gold standard must contain at least one bigram")
+        self.correct_terms = set(self.terms).intersection(self.golds)
 
     def precision(self):
         """
@@ -72,8 +74,6 @@ class Evaluation:
             Recall value (float)
 
         """
-        if len(self.golds) == 0:
-            return 0
         return len(self.correct_terms) / len(self.golds)
 
     def f1(self):
@@ -84,6 +84,17 @@ class Evaluation:
         if not prec and not rec:
             return 0
         return (2 * prec * rec) / (prec + rec)
+
+    def highest_scored(self, n=100):
+        sorted_terms = sorted(self.terms,
+                              key=lambda x: self.terms[x],
+                              reverse=True)
+        return sorted_terms[:n]
+
+    def lowest_scored(self, n=100):
+        sorted_terms = sorted(self.terms,
+                              key=lambda x: self.terms[x])
+        return sorted_terms[:n]
 
     @classmethod
     def demo(cls):
@@ -100,7 +111,56 @@ class Evaluation:
         print(eva.precision())
         print("{:=^90}".format("f1()"))
         print(eva.f1())
+        print("{:=^90}".format("highest_scored(n=1)"))
+        print(eva.highest_scored(n=1))
+        print("{:=^90}".format("lowest_scored(n=1)"))
+        print(eva.lowest_scored(n=1))
+
+    @classmethod
+    def from_file(cls, goldfile, extractedfile):
+        """Get gold terms and extracted terms from files.
+
+        The gold file should contain two words seperated by a space
+        in each line. The file with the extracted terms should have the
+        format <word> <word>\t<value> where value is a float that represents
+        the value of a decision function.
+
+        Args:
+            goldfile (str):
+                Name of a file with gold standard bigrams.
+            extractedfile (str):
+                Name of a file with extracted terms and value of
+                decision function.
+
+        Returns:
+            Evaluation object
+        """
+        goldfile = os.path.join(goldfile)
+        extractedfile = os.path.join(extractedfile)
+        golds = set()
+        extracted = dict()
+        # Read gold standard terms from file.
+        with open(goldfile) as goldfile:
+            for line in goldfile:
+                line = line.rstrip().split()
+                # Ignore malformed lines.
+                if len(line) == 2:
+                    golds.add(tuple(line))
+        # Read extracted terms from file.
+        with open(extractedfile) as extractedfile:
+            for line in extractedfile:
+                line = line.rstrip().split("\t")
+                if len(line) == 2:
+                    # Ignore malformed lines.
+                    try:
+                        bigram, value = line[0].split(), float(line[1])
+                        if len(bigram) == 2:
+                            extracted[tuple(bigram)] = value
+                    except ValueError:
+                        pass
+        return cls(extracted, golds)
 
 
 if __name__ == "__main__":
-    Evaluation.demo()
+    d = Evaluation.from_file("gold_terminology.txt", "output/output1.txt")
+    print(d.f1())
