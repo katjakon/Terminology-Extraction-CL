@@ -13,7 +13,7 @@ from nltk.probability import FreqDist
 
 class Preprocess:
 
-    DEMO = {"corpus": "demo/"}
+    DEMO = {"corpus": "demo/domain/"}
 
     """
     A class that does some processing of a corpus. A corpus can be
@@ -197,13 +197,14 @@ class Preprocess:
     def demo(cls):
         print("\tDemo for class Preprocess\n"
               "For each method, you can see its arguments and output. "
-              "For more information use the help function.")
-        print("Using corpus: {}".format(cls.DEMO["corpus"]))
+              "For more information use the help function.\n\n"
+              "Arguments used for instanciating the class:\n"
+              "\tcorpus - {}".format(cls.DEMO["corpus"]))
         pre = cls(**cls.DEMO)
         print("{:=^90}".format("bigrams()"))
         print(pre.bigrams())
-        print("{:=^90}".format("bigrams('demo1.txt')"))
-        print(pre.bigrams("demo1.txt"))
+        print("{:=^90}".format("bigrams('domain1.txt')"))
+        print(pre.bigrams("domain1.txt"))
         print("{:=^90}".format("sum_bigrams"))
         print(pre.sum_bigrams)
         print("{:=^90}".format("get_frequency"
