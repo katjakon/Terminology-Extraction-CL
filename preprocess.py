@@ -5,6 +5,8 @@
 Choose candidates for terminolgy extraction
 and do some preprocessing.
 """
+import os
+
 import nltk
 from nltk import bigrams
 from nltk.corpus.reader.plaintext import PlaintextCorpusReader
@@ -25,7 +27,7 @@ class Preprocess:
     Methods:
         is_lexical(word_i, word_j):
             Check if both words are alpha-numerical.
-        candidates(min_prob=-15, stops=None):
+        candidates(self, min_count=4, stops=None, tags={"NN", "NNP", "NNS"}):
             Get set of possible bigrams for terminology extraction.
         get_frequency(bigram_list, fileid=None):
             Get frequency of bigrams in bigram list in corpus or file.
@@ -79,10 +81,10 @@ class Preprocess:
 
         Returns:
             bool:
-                True if both token are alpha-numeric,
+                True if both token are alphabetical,
                 False otherwise.
         """
-        if word_i.isalnum() and word_j.isalnum():
+        if word_i.isalpha() and word_j.isalpha():
             return True
         return False
 
@@ -109,7 +111,7 @@ class Preprocess:
             return True
         return False
 
-    def candidates(self, min_count=4, stops=None, tags={"NN", "NNP", "NNS"}):
+    def candidates(self, min_count, stops=None, tags={"NN", "NNS", "NNP"}):
         """
         Generate a list of possible candidates for terminology extraction.
 
@@ -192,6 +194,14 @@ class Preprocess:
             bigrams_file = bigrams(file_words)
             return FreqDist(bigrams_file)
         return self._bigrams
+
+    def write_candidates_file(self, min_count, stops, tags, filename):
+        filename = os.path.join(filename)
+        candidates = self.candidates(min_count, stops, tags)
+        with open(filename, "w", encoding="utf-8") as file:
+            for wordi, wordj in candidates:
+                file.write("{} {}\n".format(wordi, wordj))
+        print("Success: Candidates written to '{}'".format(filename))
 
     @classmethod
     def demo(cls):

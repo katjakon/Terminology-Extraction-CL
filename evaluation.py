@@ -4,7 +4,9 @@
 """
 Evaluation of a set of extracted terms.
 """
+import csv
 import os
+
 
 class Evaluation:
 
@@ -18,7 +20,9 @@ class Evaluation:
     A class that evaluates a set of extracted terms.
 
     Attributes:
-        terms (set): A set of extraced bigrams (two-tuples of strings)
+        terms (dict):
+            A dict of extraced bigrams (two-tuples of strings), values are
+            the value of the decision function.
         golds (set): A set of gold standard bigrams (two-tuples of strings)
         correct_terms (set): Intersection of terms and golds.
 
@@ -29,6 +33,15 @@ class Evaluation:
             Number of correct terms divided by number of gold terms.
         f1():
             Harmonic medium of precision and recall.
+        highest_scored(n=100):
+            Return the n highest scored terms.
+        lowest_scored(n=100):
+            Return the n lowest scorede terms.
+        from_file():
+            Read extracted terms and gold terms from
+            a file.
+        demo():
+            Get a demo of important methods.
     """
 
     def __init__(self, terms, golds):
@@ -49,7 +62,7 @@ class Evaluation:
         self.terms = terms
         self.golds = set(golds)
         if not self.golds:
-            raise ValueError("Gold standard must contain at least one bigram")
+            raise ValueError("Gold standard must contain at least one element")
         self.correct_terms = set(self.terms).intersection(self.golds)
 
     def precision(self):
@@ -117,7 +130,7 @@ class Evaluation:
         print(eva.lowest_scored(n=1))
 
     @classmethod
-    def from_file(cls, goldfile, extractedfile):
+    def from_file(cls, goldfile, extractedfile, ignore=2):
         """Get gold terms and extracted terms from files.
 
         The gold file should contain two words seperated by a space
@@ -148,19 +161,29 @@ class Evaluation:
                     golds.add(tuple(line))
         # Read extracted terms from file.
         with open(extractedfile) as extractedfile:
-            for line in extractedfile:
-                line = line.rstrip().split("\t")
-                if len(line) == 2:
-                    # Ignore malformed lines.
+            csv_reader = csv.reader(extractedfile, delimiter=";")
+            line_count = 0
+            for line in csv_reader:
+                if line_count not in range(ignore):
                     try:
-                        bigram, value = line[0].split(), float(line[1])
-                        if len(bigram) == 2:
-                            extracted[tuple(bigram)] = value
-                    except ValueError:
-                        pass
+                        bigram, value, isterm = (tuple(line[0].split()),
+                                                 float(line[1]),
+                                                 line[2])
+                        if isterm != "True" and isterm != "False":
+                            raise ValueError
+                    except (IndexError, ValueError):
+                        raise ValueError("Malformed input file. "
+                                         "The first {} lines "
+                                         "are ignored.\n"
+                                         "Every line after"
+                                         "should have the format: "
+                                         "<term>;<float>;"
+                                         "<True/False>".format(ignore))
+                    if isterm == "True":
+                        extracted[bigram] = value
+                line_count += 1
         return cls(extracted, golds)
 
 
 if __name__ == "__main__":
-    d = Evaluation.from_file("gold_terminology.txt", "output/output1.txt")
-    print(d.f1())
+    Evaluation.demo()

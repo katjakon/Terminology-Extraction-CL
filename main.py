@@ -20,7 +20,7 @@ from preprocess import Preprocess
 class Extract:
     """
     A class that extracts terminology from a corpus and
-    writes results to a file.
+    writes results to a file according to a list of arguments.
 
     Attributes:
         domain (str):
@@ -32,7 +32,7 @@ class Extract:
         output (str):
             Name of a file where output will be stored.
         alpha (float):
-            Value for alpha, weights relevance and consenus
+            Value for alpha, weights relevance and consensus
         theta (float):
             Value for theta, threshold for terminology
 
@@ -41,7 +41,7 @@ class Extract:
             Read in terms from a file.
         run():
             Extract terminology from domain corpus
-            and write results to file.
+            and write results to output file.
     """
     from nltk.corpus import reuters
 
@@ -97,34 +97,16 @@ class Extract:
     def run(self):
         """Extract candidates and write them to the output file.
 
-        First two lines will be value for alpha and theta.
-
         Returns: None
-
-        Raises:
-            OSError:
-                If output file already exists to avoid overwriting results
         """
         out = os.path.join(self.out)
-        # Check if output exitst to avoid overwriting results.
-        if os.path.exists(out):
-            raise OSError("Output file already exists.")
         # Extract terminology.
         print("Processing domain and reference corpus...")
         term_obj = Terminology(self.corpus,
                                self.REF,
                                self.candidates)
-        terms = term_obj.terminology(self.alpha, self.theta)
-        # Write output file.
-        with open(out, "w", encoding="utf-8") as out:
-            out.write("alpha\t{}\n".format(self.alpha))
-            out.write("theta\t{}\n".format(self.theta))
-            for word_i, word_j in terms:
-                out.write("{} {}\t{}\n".format(word_i,
-                                               word_j,
-                                               terms[(word_i, word_j)]))
-        # Success message.
-        print("Terminology written to {}".format(self.out))
+        print("Extracting Terminology...")
+        term_obj.write_csv(self.alpha, self.theta, out)
 
 
 class Evaluate:
@@ -236,7 +218,7 @@ class Candidates(Extract):
                             help="Minimum count for terms "
                             "to be considered candidate")
         parser.add_argument("tags",
-                            help="Relevant tags for candidates,"
+                            help="Relevant tags for candidates, "
                             "use Penn Treebank Tags",
                             nargs="*",
                             default=[])
@@ -245,33 +227,23 @@ class Candidates(Extract):
     def run(self):
         """Generate candidates and write them to a file
 
-        Returns: None
-
-        Raises:
-            OSError:
-                If output file already exists.
+        Returns: None.
         """
         if self.stops is None:
             stops = []
         else:
             stops = self.read_from_file(self.stops, n=1)
         out = os.path.join(self.output)
-        if os.path.exists(out):
-            raise OSError("Output file already exists")
         print("Processing corpus...")
         process = Preprocess(self.corpus)
         print("Generating candidates...")
-        cand = process.candidates(min_count=self.min_count,
-                                  stops=stops,
-                                  tags=self.tags)
-        with open(out, "w", encoding="utf-8") as out:
-            for word_i, word_j in cand:
-                out.write("{} {}\n".format(word_i, word_j))
-        print("Candidates written to {}".format(self.output))
+        process.write_candidates_file(min_count=self.min_count,
+                                      stops=stops,
+                                      tags=self.tags,
+                                      filename=out)
 
 
 def main():
-    """"""
     arg = sys.argv
     if len(arg) < 2:
         raise ValueError("Enter a valid command.")
@@ -291,4 +263,4 @@ if __name__ == "__main__":
     except (OSError, ValueError) as err:
         print("Failure: {}".format(err))
         print("Type 'evaluate -h', 'extract -h' "
-              "or 'candidates -h' for more information")
+              "or 'candidates -h' for information about commands")
