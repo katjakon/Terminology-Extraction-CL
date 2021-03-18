@@ -7,6 +7,7 @@ import unittest
 
 from evaluation import Evaluation
 from preprocess import Preprocess
+from extraction import Terminology
 
 
 class TestCaseEvaluation(unittest.TestCase):
@@ -18,6 +19,7 @@ class TestCaseEvaluation(unittest.TestCase):
                                      ('use', 'machine'): 0.5},
                               golds={('machine', 'translation'),
                                      ('speech', 'recognition')})
+        cls.file = "demo/demo_out.csv"
 
     def test_recall(self):
         self.assertEqual(self.eval.recall(), 0.5)
@@ -54,6 +56,9 @@ class TestCaseEvaluation(unittest.TestCase):
     def test_correct_terms_content(self):
         self.assertSetEqual(self.eval.correct_terms,
                             {('machine', 'translation')})
+
+    def test_from_file(self):
+        pass
 
 
 class TestCasePreprocess(unittest.TestCase):
@@ -109,9 +114,78 @@ class TestCasePreprocess(unittest.TestCase):
         self.assertDictEqual(self.process.get_frequency([self.bigram1],
                                                         fileid=self.fileid),
                              {self.bigram1: 1})
+
+    # def test_candidates_stopwords(self):
+    #     cand1 = self.process.candidates(min_count=1, stops=["our"])
+    #     self.assertNotIn(("our", "language"), cand1)
+    #     cand2 = self.process.candidates(min_count=1)
+    #     self.assertIn(("our", "language"), cand2)
+
+    # def test_candidates_min_count(self):
+    #     cand = list(self.process.candidates(min_count=3))
+    #     self.assertListEqual(cand, [self.bigram1])
+
+
+class TestCaseTerminology(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.bigr_all_domain = ("computational", "linguistics") # once in all files in domain
+        cls.bigr_one_domain = ("speech", "recognition") # once in one file
+        cls.bigr_some_domain = ("text", "mining") # twice in one file, once in another file.
+        cls.bigr_just_domain = ("computational", "linguistics")
+        cls.bigr_more_domain = ("machine", "learning")
+        cls.bigr_less_domain = ("language", "learning")
+        cls.term_obj = Terminology(domain="demo/domain/",
+                                   reference="demo/reference/",
+                                   candidates={
+                                       cls.bigr_all_domain,
+                                       cls.bigr_one_domain,
+                                       cls.bigr_some_domain,
+                                       cls.bigr_just_domain,
+                                       cls.bigr_more_domain,
+                                       cls.bigr_less_domain
+                                       }
+                                   )
+
+    def test_domain_relevance_only_in_domain(self):
+        relevance = self.term_obj.domain_relevance
+        self.assertEqual(relevance[self.bigr_just_domain], 1)
+
+    def test_domain_relevance_more_in_domain(self):
+        relevance = self.term_obj.domain_relevance
+        self.assertAlmostEqual(relevance[self.bigr_more_domain],
+                               6/11,
+                               places=5)
+
+    def test_domain_relevance_less_in_domain(self):
+        relevance = self.term_obj.domain_relevance
+        self.assertAlmostEqual(relevance[self.bigr_less_domain],
+                               1/6,
+                               places=5)
+
+    def test_domain_consensus_in_all_files(self):
+        consensus = self.term_obj.domain_consensus
+        self.assertAlmostEqual(consensus[self.bigr_all_domain],
+                               1.098612289,
+                               places=5)
+
+    def test_domain_consensus_in_one_file(self):
+        consensus = self.term_obj.domain_consensus
+        self.assertEqual(consensus[self.bigr_one_domain], 0)
+
+    def test_domain_consensus_in_some_files(self):
+        consensus = self.term_obj.domain_consensus
+        self.assertAlmostEqual(consensus[self.bigr_some_domain],
+                               0.6365141683,
+                               places=5)
+
+    def test_weighted_candidates_alpha_05(self):
+        pass
+
+
 if __name__ == "__main__":
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestCaseEvaluation))
-    suite.addTest(unittest.makeSuite(TestCasePreprocess))
+    suite.addTest(unittest.makeSuite(TestCaseTerminology))
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
