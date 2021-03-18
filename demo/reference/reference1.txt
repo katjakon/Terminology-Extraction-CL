@@ -1,4 +1,2 @@
-The weather is great.
-Being rich is difficult.
-Do you use machine translation?
- 
+machine learning
+language learning

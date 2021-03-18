@@ -1,3 +1,4 @@
-I have heard of computational linguistics.
-The speech recognition is not very good.
-We have found low recall rates.
+Computational Linguistics
+speech recognition
+text mining
+machine learning

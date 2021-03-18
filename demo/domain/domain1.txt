@@ -1,4 +1,2 @@
-Computational linguistics is great.
-Natural language processing is difficult.
-Do you use machine translation?
- 
+The field of Computational linguistics
+machine learning
