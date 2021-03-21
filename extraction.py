@@ -16,14 +16,10 @@ class Terminology:
     DEMO = {"domain": "demo/domain/",
             "reference": "demo/reference",
             "candidates": {('computational', 'linguistics'),
-                           ('low', 'recall'),
-                           ('recall', 'rates'),
                            ('text', 'mining'),
-                           ('language', 'generation'),
+                           ('language', 'learning'),
                            ('speech', 'recognition'),
-                           ('our', 'language'),
-                           ('machine', 'translation'),
-                           ('used', 'machine')}
+                           ('machine', 'learning')}
             }
 
     """
@@ -222,7 +218,7 @@ class Terminology:
                 csv_writer.writerow([bigram,
                                      value,
                                      extracted])
-        print("Success: Terms written to {}".format(filename))
+        print("Success: Terms written to '{}'".format(filename))
 
     @classmethod
     def demo(cls):
