@@ -66,32 +66,27 @@ class Evaluation:
         self.correct_terms = set(self.terms).intersection(self.golds)
 
     def precision(self):
-        """
-        Compute precision by dividing number of correct terms by
+        """Compute precision by dividing number of correct terms by
         number of extracted terms.
 
         Returns:
             Precision value (float)
-
         """
         if len(self.terms) == 0:
             return 0
         return len(self.correct_terms) / len(self.terms)
 
     def recall(self):
-        """
-        Compute recall by dividing number of correct terms by
+        """Compute recall by dividing number of correct terms by
         number of gold standard terms.
 
         Returns:
             Recall value (float)
-
         """
         return len(self.correct_terms) / len(self.golds)
 
     def f1(self):
-        """Returns harmonic medium of recall and precision value.
-        """
+        """Returns harmonic medium of recall and precision value."""
         prec = self.precision()
         rec = self.recall()
         if not prec and not rec:
@@ -99,18 +94,43 @@ class Evaluation:
         return (2 * prec * rec) / (prec + rec)
 
     def highest_scored(self, n=100):
+        """Returns n highest scored terms according to
+        self.terms values of bigrams.
+
+        Args:
+            n (int):
+                Number of terms that should be returned at most.
+
+        Returns:
+            list:
+                list of max. n terms sorted by their decision value in
+                descending order.
+        """
         sorted_terms = sorted(self.terms,
                               key=lambda x: self.terms[x],
                               reverse=True)
         return sorted_terms[:n]
 
     def lowest_scored(self, n=100):
+        """Returns n lowest scored terms according to
+        self.terms values of bigrams.
+
+        Args:
+            n (int):
+                Number of terms that should be returned at most.
+
+        Returns:
+            list:
+                list of max. n terms sorted by their decision value in
+                ascending order.
+        """
         sorted_terms = sorted(self.terms,
                               key=lambda x: self.terms[x])
         return sorted_terms[:n]
 
     @classmethod
     def demo(cls):
+        """Demo of methods in Evaluation class."""
         print("\tDemo for class Evaluation\n"
               "For each method, you can see its arguments and output. "
               "For more information use the help function.\n\n"
@@ -133,17 +153,32 @@ class Evaluation:
     def from_file(cls, goldfile, extractedfile, ignore=2):
         """Get gold terms and extracted terms from files.
 
-        The gold file should contain two words seperated by a space
-        in each line. The file with the extracted terms should have the
-        format <word> <word>\t<value> where value is a float that represents
-        the value of a decision function.
+        Skips first lines in extractedfile and only reads in
+        well formed lines.
 
         Args:
             goldfile (str):
-                Name of a file with gold standard bigrams.
+                Name of a file with gold standard bigrams.Should contain
+                two words seperated by a space in each line.
             extractedfile (str):
                 Name of a file with extracted terms and value of
-                decision function.
+                decision function.First two lines will be ignored.
+                After that lines should have the format
+                <word> <word>;<value>;<True/False>
+                where <word> <word> represents a bigram,
+                <value> the value of decision function and
+                <True/False> wether or not a bigram is considered
+                terminology.
+            ignore (int):
+                Number of lines at beginning of extractedfile
+                that will be skipped.
+                Default is 2, because these lines contain values
+                for alpha and theta.
+
+        Raises:
+            ValueError:
+                If lines in extractedfile after first ignored
+                lines are malformed.
 
         Returns:
             Evaluation object
@@ -156,9 +191,7 @@ class Evaluation:
         with open(goldfile) as goldfile:
             for line in goldfile:
                 line = line.rstrip().split()
-                # Ignore malformed lines.
-                if len(line) == 2:
-                    golds.add(tuple(line))
+                golds.add(tuple(line))
         # Read extracted terms from file.
         with open(extractedfile) as extractedfile:
             csv_reader = csv.reader(extractedfile, delimiter=";")
@@ -171,6 +204,7 @@ class Evaluation:
                                                  line[2])
                         if isterm != "True" and isterm != "False":
                             raise ValueError
+                    # Malformed lines.
                     except (IndexError, ValueError):
                         raise ValueError("Malformed input file. "
                                          "The first {} lines "
