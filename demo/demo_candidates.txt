@@ -1,0 +1,5 @@
+computational linguistics
+speech recognition
+text mining
+machine learning
+language learning
