@@ -253,6 +253,36 @@ def main():
         Evaluate(arg[2:]).run()
     elif arg[1] == "candidates":
         Candidates(arg[2:]).run()
+    elif arg[1] == "demo":
+        demo_candidates = ["--stops", "demo/demo_stops.txt",
+                           "--min_count", "1",
+                           "demo/domain/",
+                           "demo/demo_candidates_out.txt",
+                           "NN"]
+        print("Demo for command 'candidates'\n"
+              "\tCall:\n"
+              "candidates {}\n"
+              "\tOutput:".format(" ".join(demo_candidates)))
+        Candidates(demo_candidates).run()
+        demo_extract = ["-a", "0.5", "-t", "0.6",
+                        "demo/domain/",
+                        "demo/demo_candidates.txt",
+                        "demo/demo_out.csv"]
+        print("="*30)
+        print("Demo for command 'extract'\n"
+              "\tCall:\n"
+              "extract {} \n"
+              "\tOutput:".format(" ".join(demo_extract)))
+        Extract(demo_extract).run()
+        demo_eval = ["--extracted", "demo/demo_out.csv",
+                     "--gold", "demo/demo_gold.txt",
+                     "--high", "1", "--low", "1"]
+        print("="*30)
+        print("Demo for command 'evaluate'\n"
+              "\tCall:\n"
+              "evaluate {}\n"
+              "\tOutput:".format(" ".join(demo_eval)))
+        Evaluate(demo_eval).run()
     else:
         raise ValueError("Invalid command '{}'".format(arg[1]))
 
@@ -263,4 +293,5 @@ if __name__ == "__main__":
     except (OSError, ValueError) as err:
         print("Failure: {}".format(err))
         print("Type 'evaluate -h', 'extract -h' "
-              "or 'candidates -h' for information about commands")
+              "or 'candidates -h' for information about commands\n"
+              "Type 'demo' for a demo of commands")
