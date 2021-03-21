@@ -54,12 +54,6 @@ class Preprocess:
         self._bigrams = FreqDist()
         self._count()
 
-    @property
-    def sum_bigrams(self):
-        """Sum of frequency of all bigrams in corpus."""
-        freq_bigram = self.bigrams()
-        return sum(freq_bigram[bigram] for bigram in freq_bigram)
-
     def _count(self):
         """Counts occurences of bigrams in corpus, case insensitive.
 
@@ -70,6 +64,13 @@ class Preprocess:
         bigrams_words = bigrams(words)
         for bigram in bigrams_words:
             self._bigrams[bigram] += 1
+
+    def corpus_stats(self):
+        """Prints no of sentences, types and token in the corpus."""
+        print("Number of sentences: {}".format(len(self.corpus.sents())))
+        print("Token: {}".format(len(self.corpus.words())))
+        types = FreqDist(self.corpus.words())
+        print("Types: {}".format(len(types)))
 
     @staticmethod
     def is_lexical(word_i, word_j):
@@ -211,12 +212,12 @@ class Preprocess:
               "Arguments used for instanciating the class:\n"
               "\tcorpus - {}".format(cls.DEMO["corpus"]))
         pre = cls(**cls.DEMO)
+        print("{:=^90}".format("corpus_stats()"))
+        pre.corpus_stats()
         print("{:=^90}".format("bigrams()"))
         print(pre.bigrams())
         print("{:=^90}".format("bigrams('domain1.txt')"))
         print(pre.bigrams("domain1.txt"))
-        print("{:=^90}".format("sum_bigrams"))
-        print(pre.sum_bigrams)
         print("{:=^90}".format("get_frequency"
                                "([('computational', 'linguistics'), "
                                "('not', 'present')])"))
