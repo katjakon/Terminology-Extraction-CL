@@ -9,8 +9,8 @@ Evaluate - Class for the command to evaluate extracted terms.
 Candidates - Class for the command to generate candidates.
 """
 import argparse
-import sys
 import os
+import sys
 
 from extraction import Terminology
 from evaluation import Evaluation
@@ -69,12 +69,12 @@ class Extract:
         parser.add_argument("candidates",
                             help="File with candidates.")
         parser.add_argument("-a", "--alpha", type=float,
+                            default=0.5,
                             help="Value for weighing consensus "
-                            "and relevance",
-                            required=True)
+                            "and relevance")
         parser.add_argument("-t", "--theta", type=float,
-                            help="Threshold when extracting terminology",
-                            required=True)
+                            default=2,
+                            help="Threshold when extracting terminology")
         parser.add_argument("out", help="Name for output file")
         return parser.parse_args(sysargs)
 
@@ -201,7 +201,7 @@ class Candidates(Extract):
         self.args = self._parser(sysargs)
         self.corpus = self.args.corpus
         self.stops = self.args.stops
-        self.min_count = self.args.min_count
+        self.min_count = self.args.min
         self.output = self.args.output
         self.tags = self.args.tags
 
@@ -214,7 +214,7 @@ class Candidates(Extract):
         parser.add_argument("output", help="Name for the output file.")
         parser.add_argument("--stops",
                             help="File with stopwords")
-        parser.add_argument("--min_count", default=4, type=int,
+        parser.add_argument("--min", default=1, type=int,
                             help="Minimum count for terms "
                             "to be considered candidate")
         parser.add_argument("tags",
@@ -255,7 +255,7 @@ def main():
         Candidates(arg[2:]).run()
     elif arg[1] == "demo":
         demo_candidates = ["--stops", "demo/demo_stops.txt",
-                           "--min_count", "1",
+                           "--min", "1",
                            "demo/domain/",
                            "demo/demo_candidates_out.txt",
                            "NN"]
