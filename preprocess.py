@@ -7,8 +7,8 @@ and do some preprocessing.
 """
 import os
 
-import nltk
 from nltk import bigrams
+from nltk import pos_tag
 from nltk.corpus.reader.plaintext import PlaintextCorpusReader
 from nltk.probability import FreqDist
 
@@ -25,8 +25,10 @@ class Preprocess:
         corpus: A nltk corpus object.
 
     Methods:
+        corpus_stats:
+            Prints some infos about given corpus.
         is_lexical(word_i, word_j):
-            Check if both words are alpha-numerical.
+            Check if both words are alphabetical.
         candidates(self, min_count=4, stops=None, tags={"NN", "NNP", "NNS"}):
             Get set of possible bigrams for terminology extraction.
         get_frequency(bigram_list, fileid=None):
@@ -49,7 +51,7 @@ class Preprocess:
         """
         if isinstance(corpus, str):
             # Convert directory to Plaintext Corpus.
-            corpus = PlaintextCorpusReader(corpus, ".*")
+            corpus = PlaintextCorpusReader(corpus, r".*\.txt")
         self.corpus = corpus
         self._bigrams = FreqDist()
         self._count()
@@ -107,7 +109,7 @@ class Preprocess:
             at least one or if relevant tags are empty. False otherwise.
         """
         relevant = set(relevant)
-        tags = {tag for word, tag in nltk.pos_tag(bigram)}
+        tags = {tag for word, tag in pos_tag(bigram)}
         if relevant.intersection(tags) or len(relevant) == 0:
             return True
         return False
@@ -140,7 +142,7 @@ class Preprocess:
         for word_i, word_j in self.bigrams():
             # Filter out bigrams with stopwords.
             if word_i not in stops and word_j not in stops:
-                # Make sure bigrams only alpha-numeric.
+                # Make sure bigrams are alphabetical.
                 if self.is_lexical(word_i, word_j):
                     # Filter out infrequent bigrams.
                     if self.bigrams()[word_i, word_j] >= min_count:
@@ -197,6 +199,27 @@ class Preprocess:
         return self._bigrams
 
     def write_candidates_file(self, min_count, stops, tags, filename):
+        """Write a file with candidates.
+
+        Each line in the output file will contain one candidate.
+
+        Args:
+            min_count (int):
+                Minimum frequency a bigram has to have to be considered a
+                candidate. Absolute frequency are used.
+            stops (list):
+                List of strings. If a bigram contains a word of that list, it
+                is not considered a candidate. If default is used,
+                an empty list is used. Default is None.
+            tags:
+                Iterbale of strings, representing valid tags
+                used by Penn Treebank.
+            filename (str):
+                The name of the output file.
+
+        Returns:
+            None.
+        """
         filename = os.path.join(filename)
         candidates = self.candidates(min_count, stops, tags)
         with open(filename, "w", encoding="utf-8") as file:
@@ -206,6 +229,7 @@ class Preprocess:
 
     @classmethod
     def demo(cls):
+        """A demo for important methods of Preprocess class."""
         print("\tDemo for class Preprocess\n"
               "For each method, you can see its arguments and output. "
               "For more information use the help function.\n\n"

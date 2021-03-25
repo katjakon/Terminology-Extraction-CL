@@ -4,8 +4,8 @@
 """
 Extracting terminolgy from a corpus.
 """
-import math
 import csv
+import math
 import os
 
 from preprocess import Preprocess
@@ -29,7 +29,7 @@ class Terminology:
         domain:
             a Preprocess object of the domain corpus
         reference:
-            a Preprocess obejct of the reference corpus
+            a Preprocess object of the reference corpus
         candidates:
             a set of bigrams (two-tuples of str) that could be terminology
         domain_relevance:
@@ -38,12 +38,16 @@ class Terminology:
             a dict that contains consensus for each term in candidates.
 
     Methods:
-        weighted_candidates(alpha):
-            Weights relevanve and consensus by alpha for
+        weigh_candidates(alpha):
+            Weighs relevance and consensus by alpha for
             each candidate.
+        extract_terminology(theta, weighted_candidates):
+            Extracts terms that exceed treshold theta.
         write_csv(alpha, theta, filename):
             Write a csv file with each candidate, its value
-            when weighed by alpha and wether its terminology or not.
+            when weighed by alpha and whether its terminology or not.
+        demo():
+            Get a demo of key methods.
     """
 
     def __init__(self, domain, reference, candidates):
@@ -146,7 +150,7 @@ class Terminology:
             domain_consensus[term] = cons
         return domain_consensus
 
-    def weigthed_candidates(self, alpha):
+    def weigh_candidates(self, alpha):
         """
         Extract terminolgy based on domain consensus and
         relevance.
@@ -157,6 +161,15 @@ class Terminology:
                 domain consensus. If greater than 0.5 domain relevance
                 has more weight, if less than 0.5 domain consenus has more
                 weight.
+
+        Raises:
+            ValueError:
+                If alpha is between 0 and 1.
+
+        Returns:
+            dict:
+                Keys are candidates, values is value of weighing consensus
+                and relevance.
         """
         try:
             # Make sure alpha has appropiate value.
@@ -171,6 +184,33 @@ class Terminology:
                      + (1-alpha)*self.domain_consensus[candidate])
             terms[candidate] = value
         return terms
+
+    @staticmethod
+    def extract_terminology(theta, weighted_candidates):
+        """Determines relevant terminology bases on a threshold
+        and weighted candidates.
+
+        Args:
+            theta (float):
+                A positive float that acts as a threshold
+                for determining terminology
+            weighted_candidates (dict):
+                A dict where the keys are tuples of strings and the values
+                are floats.
+
+        Raises:
+            ValueError:
+                If theta is negative.
+
+        Returns:
+            Set of tuples of strings that exceeds the threshold theta.
+        """
+        try:
+            assert theta >= 0, "Theta needs to be positive."
+        except AssertionError as err:
+            raise ValueError(err)
+        return {term for term in weighted_candidates
+                if weighted_candidates[term] > theta}
 
     def write_csv(self, alpha, theta, filename):
         """
@@ -194,14 +234,10 @@ class Terminology:
             dict:
                 Keys are the final extraced terminology, values are value of
                 decision function.
-
         """
-        try:
-            assert theta > 0, "Theta needs to be positive"
-        except AssertionError as err:
-            raise ValueError(err)
         filename = os.path.join(filename)
-        weighted = self.weigthed_candidates(alpha)
+        weighted = self.weigh_candidates(alpha)
+        terms = self.extract_terminology(theta, weighted)
         sort_weighted = sorted(weighted,
                                key=lambda x: weighted[x],
                                reverse=True)
@@ -213,7 +249,8 @@ class Terminology:
                 bigram = "{} {}".format(wordi, wordj)
                 value = weighted[wordi, wordj]
                 extracted = False
-                if value > theta:
+                # Is bigram considered terminology or not.
+                if bigram in terms:
                     extracted = True
                 csv_writer.writerow([bigram,
                                      value,
@@ -222,6 +259,7 @@ class Terminology:
 
     @classmethod
     def demo(cls):
+        """Demo for key functionalities of Terminology class"""
         print("\tDemo for class Terminology\n"
               "For each method, you can see its arguments and output. "
               "For more information use the help function.\n\n"
@@ -232,10 +270,17 @@ class Terminology:
                                          cls.DEMO["reference"],
                                          cls.DEMO["candidates"]))
         term = cls(**cls.DEMO)
-        print("{:=^90}".format("weigthed_candidates(alpha=0.5)"))
-        print(term.weigthed_candidates(alpha=0.5))
-        print("{:=^90}".format("write_csv(alpha=0.6, theta=0.5, "
-                               "filename='demo/demo_out.csv')"))
+        print("{:=^100}".format("weigh_candidates(alpha=0.5)"))
+        print(term.weigh_candidates(alpha=0.5))
+        print("{:=^100}".format("extract_terminology(0.5, "
+                                "{('computational', 'linguistics'):1,"
+                                "('language', 'learning'):0.4 })"))
+        weighted = {('computational', 'linguistics'): 1,
+                    ('language', 'learning'): 0.4}
+        print(term.extract_terminology(theta=0.5,
+                                       weighted_candidates=weighted))
+        print("{:=^100}".format("write_csv(alpha=0.6, theta=0.5, "
+                                "filename='demo/demo_out.csv')"))
         term.write_csv(alpha=0.6, theta=0.5, filename='demo/demo_out.csv')
 
 

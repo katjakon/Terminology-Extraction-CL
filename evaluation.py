@@ -23,8 +23,10 @@ class Evaluation:
         terms (dict):
             A dict of extraced bigrams (two-tuples of strings), values are
             the value of the decision function.
-        golds (set): A set of gold standard bigrams (two-tuples of strings)
-        correct_terms (set): Intersection of terms and golds.
+        golds (set):
+            A set of gold standard bigrams (two-tuples of strings)
+        correct_terms (set):
+            Intersection of terms and golds.
 
     Methods:
         precision():
@@ -38,8 +40,7 @@ class Evaluation:
         lowest_scored(n=100):
             Return the n lowest scorede terms.
         from_file():
-            Read extracted terms and gold terms from
-            a file.
+            Read extracted terms and gold terms from a file.
         demo():
             Get a demo of important methods.
     """
