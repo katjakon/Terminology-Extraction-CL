@@ -43,8 +43,8 @@ __Explanation:__
 + `<output file>`: The name for your output file containing the candidates.
 + `[<tag> [<tag> ...]]`: Any number of Penn Treebank Tags. A tagged bigram needs to contain at least one of these tags to be considered a candidate. If argument is left out, no tagging will be used.<br>
 
-To reproduce the candidates in `data/candidates1.txt` run:<br>
-`python main.py candidates --stops data/stops_en.txt --min_count 3 acl_texts/ <your file name> NNS NN NNP`
+To reproduce the candidates in `data/candidates.txt` run:<br>
+`main.py candidates --stops data/stops_en.txt --min_count 3 acl_texts/ <your file name> NNS NN NNP`
 
 ### Extract Terminology
 Use a file with candidates and the domain corpus to extract relevant terminology. Your results will be saved to a `csv` file with `;` as a delimiter. The first two lines contain the value for alpha and theta. After that, each line has three columns `<term>;<value>;<True/False>`. The first contains the term, the second the value of the decision function and the third whether the term is considered terminology or not. Run: <br>
