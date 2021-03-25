@@ -4,8 +4,8 @@
 """
 Unittests for the Preprocess class.
 """
-import unittest
 import os
+import unittest
 
 from preprocess import Preprocess
 

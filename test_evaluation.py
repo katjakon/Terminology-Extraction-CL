@@ -74,7 +74,9 @@ class TestCaseEvaluation(unittest.TestCase):
     def test_from_file_gold_terms(self):
         eval_file = Evaluation.from_file(self.gold_file, self.terms_file)
         self.assertSetEqual({('speech', 'recognition'),
-                             ('machine', 'translation')},
+                             ('machine', 'learning'),
+                             ("computational", "linguistics"),
+                             ("parse", "trees")},
                             eval_file.golds)
 
     def test_from_file_error_malformed(self):
