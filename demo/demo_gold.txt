@@ -1,3 +1,4 @@
-machine translation
+machine learning
+computational linguistics
 speech recognition
 parse trees
