@@ -250,7 +250,7 @@ class Terminology:
                 value = weighted[wordi, wordj]
                 extracted = False
                 # Is bigram considered terminology or not.
-                if bigram in terms:
+                if (wordi, wordj) in terms:
                     extracted = True
                 csv_writer.writerow([bigram,
                                      value,
