@@ -12,9 +12,9 @@ import argparse
 import os
 import sys
 
-from extraction import Terminology
 from evaluation import Evaluation
 from preprocess import Preprocess
+from terminology import Terminology
 
 
 class Extract:
