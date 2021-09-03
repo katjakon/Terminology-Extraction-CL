@@ -84,5 +84,4 @@ Run unittests for a class by running the respective test file. For example, to g
 
 ## Author
 Katja Konermann<br>
-Matrikelnummer: 802658<br>
 Ein Projekt für die Veranstaltung _Computerlinguistische Techniken_ im Wintersemester 20/21
